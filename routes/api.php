@@ -10,6 +10,7 @@ use App\Http\Controllers\WorkspaceController;
 
 Route::prefix('workspace')->group(function () {
     Route::get('/list', [WorkspaceController::class, 'list']);
+    Route::get('/detail/{id}', [WorkspaceController::class, 'getDetail']);
     Route::post('/save-informasi', [WorkspaceController::class, 'saveInformasiWorkspace']);
     Route::post('/save-koordinat', [WorkspaceController::class, 'saveTitikKoordinatWorkspace']);
 });

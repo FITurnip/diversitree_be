@@ -19,14 +19,13 @@ class Workspace extends Model
         'urutan_status_workspace',
         'titk_koordinat',
         'pohon',
-        'shannon_wanner',
+        'hasil_akhir',
     ];
 
     // Fields that should be cast to specific types
     protected $casts = [
-        // 'status' => 'array', // Automatically cast 'status' to an array (useful for working with JSON objects)
         'pohon' => 'array',
-        'shannon_wanner' => 'array',
+        'hasil_akhir' => 'array',
     ];
 
     public function statusWorkspace()

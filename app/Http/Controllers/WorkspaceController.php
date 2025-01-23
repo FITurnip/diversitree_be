@@ -15,11 +15,19 @@ class WorkspaceController extends Controller
         return $this->api_response_success('Workspace berhasil diambil', $workspaces);
     }
 
+    public function getDetail(Request $request)
+    {
+        $workspaces = Workspace::find($request->id);
+        $workspaces = $workspaces->toArray();
+
+        return $this->api_response_success('Workspace berhasil diambil', $workspaces);
+    }
+
     public function saveInformasiWorkspace(Request $request)
     {
         // Manually create the validator and validate the request
         $validator = \Validator::make($request->all(), [
-            'nama_workspace' => 'required|string|max:255',
+            'nama_workspace' => 'nullable|string|max:255',
             'id' => 'nullable|exists:workspaces,id', // Ensure 'id' exists in the workspaces table if provided
         ]);
 
@@ -40,6 +48,8 @@ class WorkspaceController extends Controller
             if (!$workspace) {
                 return $this->api_response_error('Workspace not found', 404);
             }
+
+            if($workspace->urutan_status_workspace == 1) $workspace->urutan_status_workspace = 2;
         }
 
         // Set the data for the workspace (whether new or updated)
@@ -49,7 +59,7 @@ class WorkspaceController extends Controller
         $workspace->save();
 
         // Return the success response with the workspace data
-        return $this->api_response_success('Workspace berhasil disimpan', [$workspace]);
+        return $this->api_response_success('Workspace berhasil disimpan', $workspace->toArray());
     }
 
     private function calculateSquareAreaMin($coordinates)
@@ -109,7 +119,7 @@ class WorkspaceController extends Controller
             return $this->api_response_error('Workspace not found', [], [], 404);
         }
 
-        if($workspace->urutan_status_workspace == 1) $workspace->urutan_status_workspace = 2;
+        if($workspace->urutan_status_workspace == 2) $workspace->urutan_status_workspace = 3;
 
         // Update workspace fields
         $workspace->titik_koordinat = $request->titik_koordinat;
@@ -120,7 +130,7 @@ class WorkspaceController extends Controller
         $workspace->refresh();
 
         // Return the success response with the updated workspace
-        return $this->api_response_success('Workspace berhasil disimpan', [$workspace]);
+        return $this->api_response_success('Workspace berhasil disimpan', $workspace->toArray());
     }
 
     public function savePohon(Request $request)
@@ -164,13 +174,13 @@ class WorkspaceController extends Controller
             ];
         }
 
-        if($workspace->urutan_status_workspace == 2) $workspace->urutan_status_workspace = 3;
+        if($workspace->urutan_status_workspace == 3) $workspace->urutan_status_workspace = 4;
 
         // Save the workspace (create or update)
         $workspace->save();
         $workspace->refresh();
 
-        return $this->api_response_success('Pohon berhasil digenerate', [$workspace]);
+        return $this->api_response_success('Pohon berhasil digenerate', $workspace->toArray());
     }
 
     private function generateShanonWannerTable($listPohon)
@@ -249,8 +259,8 @@ class WorkspaceController extends Controller
 
         // Find the workspace by ID
         $workspace = Workspace::find($request->id);
-        $workspace->shannon_wanner = $shannonWanner;
+        $workspace->hasil_akhir = $shannonWanner;
 
-        return $this->api_response_success('Pohon berhasil digenerate', [$workspace]);
+        return $this->api_response_success('Pohon berhasil digenerate', $workspace->toArray());
     }
 }
