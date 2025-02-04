@@ -7,5 +7,11 @@ use Illuminate\Http\Request;
 
 class StatusWorkspaceController extends Controller
 {
-    // make get list
+    public function list()
+    {
+        $statusWorkspaces = StatusWorkspace::all();
+        $statusWorkspaces = $statusWorkspaces->toArray();
+
+        return $this->api_response_success('Status Workspace berhasil diambil', $statusWorkspaces);
+    }
 }

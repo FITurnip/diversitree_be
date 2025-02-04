@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Workspace;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class WorkspaceController extends Controller
 {
@@ -137,7 +138,8 @@ class WorkspaceController extends Controller
     {
         // Manually create the validator and validate the request
         $validator = \Validator::make($request->all(), [
-            'foto' => 'required|image',
+            // 'foto' => 'required|',
+            'foto' => 'required|image|max:51200',
             'path_foto' => 'nullable|string',
             'id' => 'required|exists:workspaces,id',
         ]);
@@ -158,23 +160,31 @@ class WorkspaceController extends Controller
         $key_got = false;
 
         if($request->path_foto) {
-            Storage::delete($path_foto);
+            Storage::delete($request->path_foto);
             $key_got = array_search($request->path_foto, array_column($workspace->pohon, 'path_foto'));
         }
 
         $path_foto = $request->file('foto')->store('uploads/pohon', 'public');
 
-        if($key != false) {
-            $workspace->pohon[$key] = $path_foto;
+        $pohon = $workspace->pohon ?? [];
+        if($key_got != false) {
+            $pohon[$key_got] = [
+                "path_foto" => $path_foto,
+                "nama_spesies" => $pohon[$key_got]["nama_spesies"],
+                // "nama_spesies" => "berubah",
+                "dbh" => $pohon[$key_got]["dbh"],
+            ];
         } else {
-            $workspace->pohon[] = [
+            // Append the new data to the array
+            $pohon[] = [
                 "path_foto" => $path_foto,
                 "nama_spesies" => "dummy",
                 "dbh" => 0,
             ];
         }
+        // Reassign the modified array back to the model
+        $workspace->pohon = $pohon;
 
-        if($workspace->urutan_status_workspace == 3) $workspace->urutan_status_workspace = 4;
 
         // Save the workspace (create or update)
         $workspace->save();
@@ -228,7 +238,7 @@ class WorkspaceController extends Controller
         $listBaru = [];
 
         foreach($listPohon as $pohon) {
-            $spesies = $pohon['spesies'];
+            $spesies = $pohon['nama_spesies'];
 
             // Increment the count for the species, or initialize it if not set
             if (!isset($listBaru[$spesies])) {
@@ -254,12 +264,18 @@ class WorkspaceController extends Controller
             return $this->api_response_error('Validation gagal disimpan', $validator->errors()->all(), $validator->errors()->keys());
         }
 
-        $pohonPerSpesies = mappingPohonFreq($request->pohon);
-        $shannonWanner = generateShanonWannerTable($pohonPerSpesies);
+        $pohonPerSpesies = $this->mappingPohonFreq($request->pohon);
+        // return $pohonPerSpesies;
+        $shannonWanner = $this->generateShanonWannerTable($pohonPerSpesies);
 
         // Find the workspace by ID
         $workspace = Workspace::find($request->id);
         $workspace->hasil_akhir = $shannonWanner;
+        if($workspace->urutan_status_workspace == 3) $workspace->urutan_status_workspace = 4;
+
+        // Save the workspace (create or update)
+        $workspace->save();
+        $workspace->refresh();
 
         return $this->api_response_success('Pohon berhasil digenerate', $workspace->toArray());
     }

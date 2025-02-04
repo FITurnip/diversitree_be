@@ -22,12 +22,6 @@ class Workspace extends Model
         'hasil_akhir',
     ];
 
-    // Fields that should be cast to specific types
-    protected $casts = [
-        'pohon' => 'array',
-        'hasil_akhir' => 'array',
-    ];
-
     public function statusWorkspace()
     {
         return $this->belongsTo(StatusWorkspace::class, 'urutan_status_workspace', 'urutan');
