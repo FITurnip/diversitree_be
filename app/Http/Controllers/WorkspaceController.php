@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Workspace;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Imagick;
 
 class WorkspaceController extends Controller
 {
@@ -300,5 +303,98 @@ class WorkspaceController extends Controller
         $workspace->refresh();
 
         return $this->api_response_success('Pohon berhasil digenerate', $workspace->toArray());
+    }
+
+    public function bagiAkses(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return $this->api_response_error('Unauthorized', [], []);
+        }
+
+        $validator = \Validator::make($request->all(), [
+            'workspace_id' => 'required|exists:workspaces,id',
+        ]);
+
+        // If validation fails, return the errors
+        if ($validator->fails()) {
+            return $this->api_response_error('Validation gagal disimpan', $validator->errors()->all(), $validator->errors()->keys());
+        }
+
+        $workspace = Workspace::find($request->workspace_id);
+        if(!$workspace || ($workspace->pemilik != $user->id)) {
+            return $this->api_response_error('Workspace tidak ditemukan', [], []);
+        }
+
+        $qrCode = QrCode::format('png')
+            ->size(500)
+            ->style('dot')
+            ->eye('circle')
+            ->margin(1)
+            ->merge('/public/Logo_QR.png')
+            ->generate($workspace->id);
+
+        return response($qrCode)->header('Content-Type', 'image/png');
+    }
+
+    public function listAnggotaTim(Request $request)
+    {
+        $validator = \Validator::make($request->all(), [
+            'workspace_id' => 'required|exists:workspaces,id',
+        ]);
+
+        // If validation fails, return the errors
+        if ($validator->fails()) {
+            return $this->api_response_error('Validation gagal disimpan', $validator->errors()->all(), $validator->errors()->keys());
+        }
+
+        $workspace = Workspace::find($request->workspace_id);
+        if(!$workspace) {
+            return $this->api_response_error('Workspace tidak ditemukan', [], []);
+        }
+
+
+        $users = User::whereIn('id', $workspace->anggota_tim ?: [])->get(['id', 'name']);
+        return $this->api_response_success('Workspace ditemukan', $users->toArray());
+    }
+
+    public function tambahAnggota(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return $this->api_response_error('Unauthorized', [], []);
+        }
+
+        $validator = \Validator::make($request->all(), [
+            'workspace_id' => 'required|exists:workspaces,id',
+        ]);
+
+        // If validation fails, return the errors
+        if ($validator->fails()) {
+            return $this->api_response_error('Validation gagal disimpan', $validator->errors()->all(), $validator->errors()->keys());
+        }
+
+        // Find the workspace by ID
+        $workspace = Workspace::find($request->workspace_id);
+
+        if (!$workspace) {
+            return $this->api_response_error('Workspace tidak ditemukan', [], []);
+        }
+
+        // Check if the user is already in the anggota_tim array
+        if (in_array($user->id, $workspace->anggota_tim ?: [])) {
+            return $this->api_response_error('User sudah menjadi anggota tim', [], []);
+        } else if($user->id == $workspace->pemilik) { // just for safety
+            return $this->api_response_error('User adalah pemilik', [], []);
+        }
+
+        // Ensure anggota_tim is an array and then add the user ID
+        $anggota_tim = $workspace->anggota_tim ?? [];
+        $anggota_tim[] = $user->id;  // Add the new user ID
+
+        // Update the anggota_tim field in the database
+        $workspace->update(['anggota_tim' => $anggota_tim]);
+
+        return $this->api_response_success('Anggota berhasil ditambahkan', $workspace->toArray());
     }
 }

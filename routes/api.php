@@ -19,6 +19,13 @@ Route::prefix('workspace')->controller(WorkspaceController::class)->middleware('
     Route::post('/save-koordinat', 'saveTitikKoordinatWorkspace');
     Route::post('/save-pohon', 'savePohon');
     Route::post('/save-final-result', 'saveFinalResult');
+
+    // mode tim
+    Route::prefix('/tim')->group(function () {
+        Route::post('/qr-code', 'bagiAkses');
+        Route::post('/list', 'listAnggotaTim');
+        Route::post('/tambah-anggota', 'tambahAnggota');
+    });
 });
 
 Route::get('/status-workspace/list', [StatusWorkspaceController::class, 'list']);
