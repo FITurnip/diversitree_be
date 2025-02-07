@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
     public function register(Request $request) {
         $validator = \Validator::make($request->all(), [
-            'name' => 'required',
+            'name' => 'required|string|max:80',
             'email' => 'required|email',  // Validate email uniqueness
             'password' => 'required|min:8',  // Ensure minimum password length for security
             'confirmation_password' => 'required|same:password',
@@ -56,20 +57,57 @@ class AuthController extends Controller
             return $this->api_response_error('Invalid credentials', [], []);
         }
 
-        // Revoke previous tokens (but keep them in the database)
-        foreach ($user->tokens as $token) {
-            $token->update([
-                'revoked' => true,
-            ]); // Mark token as revoked
-        }
+        $user->tokens()->delete();
 
         // Create a new token for the current session
-        $token = $user->createToken('auth_token')->plainTextToken;
-        $token->update(['last_logged_in_device' => $request->userAgent()]);
+        $token = $user->createToken('diversitree_token')->plainTextToken;
+        $user->update(['last_logged_in_device' => $request->userAgent()]);
 
         return $this->api_response_success('Login successful', [
             "user" => $user,
             "token" => $token,
+        ]);
+    }
+
+    public function editProfile(Request $request)
+    {
+        // Ensure the user is authenticated
+        $user = Auth::user();
+        if (!$user) {
+            return $this->api_response_error('Unauthorized', [], []);
+        }
+
+        // Determine if the email needs to be unique or not
+        $emailRule = 'required|email';
+        if ($request->email && $request->email !== $user->email) {
+            $emailRule .= '|unique:users,email'; // Only apply unique validation if email is different
+        }
+
+        // Validate the request input
+        $validator = \Validator::make($request->all(), [
+            'name' => 'required|string|max:80',  // Ensure valid name
+            'email' => $emailRule,  // Dynamically apply email validation
+            'password' => 'nullable|min:8',  // Optional password update with minimum length
+            'confirmation_password' => 'nullable|same:password',  // Ensure password confirmation matches
+        ]);
+
+        if ($validator->fails()) {
+            return $this->api_response_error('Validation failed', $validator->errors()->all(), $validator->errors()->keys());
+        }
+
+        // Update user profile with the validated data
+        $input = $request->only(['name', 'email', 'password']); // Only allow these fields
+        if ($request->has('password')) {
+            // Hash the password before saving it
+            $input['password'] = bcrypt($input['password']);
+        }
+
+        // Update user profile
+        $user->update($input);
+
+        // Return the updated user data
+        return $this->api_response_success('Profile updated successfully', [
+            'user' => $user,
         ]);
     }
 }

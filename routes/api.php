@@ -12,6 +12,8 @@ use App\Http\Controllers\AuthController;
 
 Route::prefix('auth')->controller(AuthController::class)->group(function () {
     Route::post('/register', 'register');
+    Route::post('/login', 'login');
+    Route::post('/edit-profile', 'editProfile')->middleware('auth:sanctum');
 });
 
 Route::prefix('workspace')->controller(WorkspaceController::class)->group(function () {
@@ -21,6 +23,6 @@ Route::prefix('workspace')->controller(WorkspaceController::class)->group(functi
     Route::post('/save-koordinat', 'saveTitikKoordinatWorkspace');
     Route::post('/save-pohon', 'savePohon');
     Route::post('/save-final-result', 'saveFinalResult');
-});
+})->middleware('auth:sanctum');
 
 Route::get('/status-workspace/list', [StatusWorkspaceController::class, 'list']);
