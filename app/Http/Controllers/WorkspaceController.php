@@ -5,12 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class WorkspaceController extends Controller
 {
     public function list()
     {
-        $workspaces = Workspace::select('id', 'nama_workspace', 'urutan_status_workspace', 'created_at', 'updated_at')->get();
+        $user = Auth::user();
+        if (!$user) {
+            return $this->api_response_error('Unauthorized', [], []);
+        }
+        $workspaces = Workspace::select('id', 'nama_workspace', 'urutan_status_workspace', 'created_at', 'updated_at')
+            ->where('pemilik', $user->id)
+            ->get();
         $workspaces = $workspaces->toArray();
 
         return $this->api_response_success('Workspace berhasil diambil', $workspaces);
@@ -41,6 +48,9 @@ class WorkspaceController extends Controller
         if ($request->id == null) {
             $workspace = new Workspace();
             $workspace->urutan_status_workspace = 1;
+
+            $user = Auth::user();
+            if($user) $workspace->pemilik = $user->id;
         } else {
             // If 'id' is provided, find the workspace to update
             $workspace = Workspace::find($request->id);
