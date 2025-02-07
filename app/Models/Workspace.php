@@ -15,11 +15,13 @@ class Workspace extends Model
     // Fields that can be mass-assigned
     protected $fillable = [
         'nama_workspace',
-        'tim',
         'urutan_status_workspace',
         'titk_koordinat',
         'pohon',
         'hasil_akhir',
+
+        'pemilik',
+        'anggota_tim',
     ];
 
     public function statusWorkspace()

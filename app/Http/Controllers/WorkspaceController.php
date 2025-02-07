@@ -10,7 +10,7 @@ class WorkspaceController extends Controller
 {
     public function list()
     {
-        $workspaces = Workspace::all();
+        $workspaces = Workspace::select('id', 'nama_workspace', 'urutan_status_workspace', 'created_at', 'updated_at')->get();
         $workspaces = $workspaces->toArray();
 
         return $this->api_response_success('Workspace berhasil diambil', $workspaces);
@@ -139,13 +139,15 @@ class WorkspaceController extends Controller
         // Manually create the validator and validate the request
         $validator = \Validator::make($request->all(), [
             // 'foto' => 'required|',
-            'foto' => 'required|image|max:51200',
+            'foto' => 'nullable|image|max:51200',
             'path_foto' => 'nullable|string',
             'id' => 'required|exists:workspaces,id',
+            'nama_spesies' => 'nullable|string',
+            'dbh' => 'nullable|numeric',
         ]);
 
         // If validation fails, return the errors
-        if ($validator->fails()) {
+        if ($validator->fails() || ($request->foto == null && $request->path_foto == null)) {
             return $this->api_response_error('Validation gagal disimpan', $validator->errors()->all(), $validator->errors()->keys());
         }
 
@@ -161,27 +163,37 @@ class WorkspaceController extends Controller
 
         if($request->path_foto) {
             Storage::delete($request->path_foto);
+            // return $request->path_foto;$key_got = null;
             $key_got = array_search($request->path_foto, array_column($workspace->pohon, 'path_foto'));
+            // return [$workspace->pohon[0]['path_foto'], $key_got];
         }
 
-        $path_foto = $request->file('foto')->store('uploads/pohon', 'public');
+        if($request->foto) {
+            $path_foto = $request->file('foto')->store('uploads/pohon', 'public');
+        }
 
         $pohon = $workspace->pohon ?? [];
-        if($key_got != false) {
-            $pohon[$key_got] = [
-                "path_foto" => $path_foto,
-                "nama_spesies" => $pohon[$key_got]["nama_spesies"],
-                // "nama_spesies" => "berubah",
-                "dbh" => $pohon[$key_got]["dbh"],
-            ];
+        if($key_got !== false) {
+            if ($path_foto != null) { // Ensure $path_foto is not null before assigning
+                $pohon[$key_got]["path_foto"] = $path_foto;
+            }
+
+            // Update nama_spesies and dbh if they are provided
+            if ($request->filled('nama_spesies')) {
+                $pohon[$key_got]["nama_spesies"] = $request->nama_spesies;
+            }
+            if ($request->filled('dbh')) {
+                $pohon[$key_got]["dbh"] = $request->dbh;
+            }
         } else {
             // Append the new data to the array
             $pohon[] = [
                 "path_foto" => $path_foto,
-                "nama_spesies" => "dummy",
-                "dbh" => 0,
+                "nama_spesies" => $request->nama_spesies ?? "",
+                "dbh" => $request->dbh ?? 0,
             ];
         }
+
         // Reassign the modified array back to the model
         $workspace->pohon = $pohon;
 
