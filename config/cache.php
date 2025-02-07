@@ -15,7 +15,8 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    // 'default' => env('CACHE_STORE', 'database'),
+    'default' => env('CACHE_DRIVER', 'mongodb'),
 
     /*
     |--------------------------------------------------------------------------
@@ -32,6 +33,11 @@ return [
     */
 
     'stores' => [
+
+        'mongodb' => [
+            'driver' => 'mongodb', // Ensure you're using MongoDB cache driver
+            'connection' => 'mongodb',
+        ],
 
         'array' => [
             'driver' => 'array',
