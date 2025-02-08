@@ -69,6 +69,21 @@ class AuthController extends Controller
         ]);
     }
 
+    public function logout(Request $request)
+    {
+        // Ensure the user is authenticated
+        $user = Auth::user();
+        if (!$user) {
+            return $this->api_response_error('Unauthorized', [], []);
+        }
+
+        // Revoke the user's current token
+        $user->currentAccessToken()->delete();
+
+        // Return a successful response
+        return $this->api_response_success('User logged out successfully', []);
+    }
+
     public function editProfile(Request $request)
     {
         // Ensure the user is authenticated

@@ -9,6 +9,7 @@ use App\Http\Controllers\AuthController;
 Route::prefix('auth')->controller(AuthController::class)->group(function () {
     Route::post('/register', 'register');
     Route::post('/login', 'login');
+    Route::post('/logout', 'logout')->middleware('auth:sanctum');
     Route::post('/edit-profile', 'editProfile')->middleware('auth:sanctum');
 });
 
@@ -22,7 +23,7 @@ Route::prefix('workspace')->controller(WorkspaceController::class)->middleware('
 
     // mode tim
     Route::prefix('/tim')->group(function () {
-        Route::post('/qr-code', 'bagiAkses');
+        Route::get('/qr-code/{workspace_id}', 'bagiAkses');
         Route::post('/list', 'listAnggotaTim');
         Route::post('/tambah-anggota', 'tambahAnggota');
     });

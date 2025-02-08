@@ -20,6 +20,7 @@ class WorkspaceController extends Controller
         }
         $workspaces = Workspace::select('id', 'nama_workspace', 'urutan_status_workspace', 'created_at', 'updated_at')
             ->where('pemilik', $user->id)
+            ->orWhereIn('anggota_tim', [$user->id])
             ->get();
         $workspaces = $workspaces->toArray();
 
@@ -48,7 +49,7 @@ class WorkspaceController extends Controller
         }
 
         // If no 'id' is provided, create a new workspace
-        if ($request->id == null) {
+        if ($request->id == null || $request->id == "") {
             $workspace = new Workspace();
             $workspace->urutan_status_workspace = 1;
 
@@ -305,32 +306,32 @@ class WorkspaceController extends Controller
         return $this->api_response_success('Pohon berhasil digenerate', $workspace->toArray());
     }
 
-    public function bagiAkses(Request $request)
+    public function bagiAkses($workspace_id)
     {
         $user = Auth::user();
         if (!$user) {
             return $this->api_response_error('Unauthorized', [], []);
         }
 
-        $validator = \Validator::make($request->all(), [
-            'workspace_id' => 'required|exists:workspaces,id',
-        ]);
+        // $validator = \Validator::make($request->all(), [
+        //     'workspace_id' => 'required|exists:workspaces,id',
+        // ]);
 
-        // If validation fails, return the errors
-        if ($validator->fails()) {
-            return $this->api_response_error('Validation gagal disimpan', $validator->errors()->all(), $validator->errors()->keys());
-        }
+        // // If validation fails, return the errors
+        // if ($validator->fails()) {
+        //     return $this->api_response_error('Validation gagal disimpan', $validator->errors()->all(), $validator->errors()->keys());
+        // }
 
-        $workspace = Workspace::find($request->workspace_id);
+        $workspace = Workspace::find($workspace_id);
         if(!$workspace || ($workspace->pemilik != $user->id)) {
             return $this->api_response_error('Workspace tidak ditemukan', [], []);
         }
 
         $qrCode = QrCode::format('png')
-            ->size(500)
+            ->size(400)
             ->style('dot')
             ->eye('circle')
-            ->margin(1)
+            ->errorCorrection('H')
             ->merge('/public/Logo_QR.png')
             ->generate($workspace->id);
 
