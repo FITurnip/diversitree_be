@@ -329,10 +329,9 @@ class WorkspaceController extends Controller
 
         $qrCode = QrCode::format('png')
             ->size(400)
-            ->style('dot')
-            ->eye('circle')
             ->errorCorrection('H')
             ->merge('/public/Logo_QR.png')
+            ->margin(1)
             ->generate($workspace->id);
 
         return response($qrCode)->header('Content-Type', 'image/png');
